@@ -1,16 +1,22 @@
-# This is a sample Python script.
+import pygame
+from constants import SCREEN_HEIGHT, SCREEN_WIDTH
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+pygame.init()
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Dungeon Crawler")
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
+
+# game loop
+run = True
+while run:
+
+    #event handler
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+
+
+pygame.quit()

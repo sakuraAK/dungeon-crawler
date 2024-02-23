@@ -1,6 +1,7 @@
 import pygame
-from constants import SCREEN_HEIGHT, SCREEN_WIDTH, BG, FPS
-from character import  Character
+from constants import SCREEN_HEIGHT, SCREEN_WIDTH, BG, FPS, SPEED, SCALE
+from character import Character
+from enemies import  Zombie
 
 pygame.init()
 
@@ -16,9 +17,36 @@ move_right = False
 move_up = False
 move_down = False
 
-# create player
+def scale_image(image, scale):
+    w = image.get_width()
+    h = image.get_height()
+    return pygame.transform.scale(image, (w * scale, h * scale))
 
-player = Character(100, 100)
+# work on images
+character_list = ["dracula", "zombie"]
+action_types = ["idle", "run"]
+all_animation_list = []
+for character in character_list:
+    animation_list = []
+    for action in action_types:
+        tmp_list = []
+        for i in range(4):
+            image = pygame.image.load(f"assets/images/characters/{character}/{action}/{i}.png").convert_alpha()
+            image = scale_image(image, SCALE)
+            tmp_list.append(image)
+        animation_list.append(tmp_list)
+    all_animation_list.append(animation_list)
+
+
+
+
+
+# create player
+player = Character(100, 100, all_animation_list, 0)
+
+#create enemies
+enemies_list = []
+enemies_list.append(Zombie(300, 300, all_animation_list))
 
 # game loop
 run = True
@@ -33,19 +61,33 @@ while run:
     dx = 0
     dy = 0
     if move_right:
-        dx = 5
+        dx = SPEED
     if move_left:
-        dx = -5
+        dx = -SPEED
     if move_up:
-        dy = -5
+        dy = -SPEED
     if move_down:
-        dy = 5
+        dy = SPEED
 
     # move player
     player.move(dx, dy)
 
+    # move enemies
+    for enemy in enemies_list:
+        enemy.move()
+
+    # update animation
+    player.update()
+    for enemy in enemies_list:
+        enemy.update()
+
+
     # draw player
     player.draw(screen)
+
+    # draw enemies
+    for enemy in enemies_list:
+        enemy.draw(screen)
 
     #event handler
     for event in pygame.event.get():

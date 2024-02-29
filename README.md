@@ -1,1 +1,1 @@
-Dungeon crawler game usin Pygame
+Dungeon crawler game using Pygame

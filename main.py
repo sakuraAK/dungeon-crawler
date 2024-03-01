@@ -1,6 +1,7 @@
 import pygame
-from constants import SCREEN_HEIGHT, SCREEN_WIDTH, BG, FPS, SPEED, SCALE
+from constants import SCREEN_HEIGHT, SCREEN_WIDTH, BG, FPS, SPEED, SCALE, SCALE_WEAPON
 from character import Character
+from weapon import Weapon, Arrow
 from enemies import  Zombie
 
 pygame.init()
@@ -23,6 +24,9 @@ def scale_image(image, scale):
     return pygame.transform.scale(image, (w * scale, h * scale))
 
 # work on images
+bow_image = scale_image(pygame.image.load("assets/images/weapons/bow.png").convert_alpha(), SCALE_WEAPON)
+arrow_image = scale_image(pygame.image.load("assets/images/weapons/arrow.png").convert_alpha(), SCALE_WEAPON)
+
 character_list = ["dracula", "zombie"]
 action_types = ["idle", "run"]
 all_animation_list = []
@@ -42,11 +46,15 @@ for character in character_list:
 
 
 # create player
-player = Character(100, 100, all_animation_list, 0)
+player = Character(100, 100, 100, all_animation_list, 0)
+bow = Weapon(bow_image, arrow_image)
+
+# sprite groups
+arrow_group = pygame.sprite.Group()
 
 #create enemies
 enemies_list = []
-enemies_list.append(Zombie(300, 300, all_animation_list))
+enemies_list.append(Character(300, 300, 100, all_animation_list, 1))
 
 # game loop
 run = True
@@ -72,18 +80,30 @@ while run:
     # move player
     player.move(dx, dy)
 
-    # move enemies
-    for enemy in enemies_list:
-        enemy.move()
+    # # move enemies
+    # for enemy in enemies_list:
+    #     enemy.move()
 
     # update animation
     player.update()
+    arrow = bow.update(player)
+    if arrow:
+        arrow_group.add(arrow)
+
+    for arrow in arrow_group:
+        arrow.update(enemies_list)
+    #arrow_group.update()
+
     for enemy in enemies_list:
         enemy.update()
+
+    print(enemies_list[0].health)
 
 
     # draw player
     player.draw(screen)
+    bow.draw(screen)
+    arrow_group.draw(screen)
 
     # draw enemies
     for enemy in enemies_list:

@@ -6,7 +6,7 @@ import constants
 
 class Character:
 
-    def __init__(self, x, y, animation_list, character_index):
+    def __init__(self, x, y, health, animation_list, character_index):
         self.animation_list = animation_list
         self.frame_index = 0
         self.last_animation_update_time = pygame.time.get_ticks()
@@ -16,6 +16,8 @@ class Character:
         self.image = self.animation_list[character_index][1 if self.moving else 0][self.frame_index]
         self.flip = False
         self.character_index = character_index
+        self.health = health
+        self.alive = True
 
 
 
@@ -50,7 +52,9 @@ class Character:
             # self.frame_index  = self.frame_index % len(self.animation_list)
             if self.frame_index >= len(self.animation_list):
                 self.frame_index = 0
-
+        if self.health <= 0:
+            self.health = 0
+            self.alive = False
 
     def draw(self, surface):
         flipped_image = pygame.transform.flip(self.image, self.flip, False)

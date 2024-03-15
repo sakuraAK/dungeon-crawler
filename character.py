@@ -18,6 +18,7 @@ class Character:
         self.character_index = character_index
         self.health = health
         self.alive = True
+        self.score = 0
 
 
 
@@ -41,7 +42,7 @@ class Character:
         self.rect.x += dx
         self.rect.y += dy
     def update(self):
-        animation_cooldown = 200
+        animation_cooldown = constants.ANIMATION_COOLDOWN_PERIOD
 
         # handle animation
         # update image

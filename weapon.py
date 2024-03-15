@@ -57,6 +57,8 @@ class Arrow(pygame.sprite.Sprite):
 
 
     def update(self, enemy_list):
+        damage = 0
+        enemy_pos_rect = None
         self.rect.x += self.dx
         self.rect.y += self.dy
         # check if arrow is visible
@@ -68,9 +70,11 @@ class Arrow(pygame.sprite.Sprite):
         for enemy in enemy_list:
             if enemy.alive and enemy.rect.colliderect(self.rect):
                 damage = 10 + random.randint(-5, 5)
+                enemy_pos_rect = enemy.rect
                 enemy.health -= damage
                 self.kill()
                 break
+        return damage, enemy_pos_rect
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)

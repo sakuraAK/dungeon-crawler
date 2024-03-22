@@ -1,4 +1,6 @@
 import pygame
+import csv
+from world import World
 
 import constants
 from constants import SCREEN_HEIGHT, SCREEN_WIDTH, BG, FPS, SPEED, SCALE, SCALE_WEAPON
@@ -12,7 +14,7 @@ pygame.init()
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Dungeon Crawler")
-
+game_level = 1
 clock = pygame.time.Clock()
 
 # player movement variables
@@ -37,11 +39,18 @@ class DamageText(pygame.sprite.Sprite):
         self.rect.center = (x, y)
         self.fade_counter = 0
 
-    def update(self):
+    def update(self, scroll):
+
+        self.rect.centerx += scroll[0]
+        self.rect.centery += scroll[1]
+
         self.rect.y -= 1
         self.fade_counter += 1
         if self.fade_counter > 100:
             self.kill()
+
+
+
 
 def scale_image(image, scale):
     w = image.get_width()
@@ -49,6 +58,14 @@ def scale_image(image, scale):
     return pygame.transform.scale(image, (w * scale, h * scale))
 
 # work on images
+
+# map tiles
+tile_images = []
+for i in range(constants.IMAGE_TYPE):
+    img = pygame.image.load(f"assets/images/tiles/{i}.png").convert_alpha()
+    img = pygame.transform.scale(img, (constants.TILE_SIZE, constants.TILE_SIZE))
+    tile_images.append(img)
+
 bow_image = scale_image(pygame.image.load("assets/images/weapons/bow.png").convert_alpha(), SCALE_WEAPON)
 arrow_image = scale_image(pygame.image.load("assets/images/weapons/arrow.png").convert_alpha(), SCALE_WEAPON)
 
@@ -77,6 +94,8 @@ for character in character_list:
     all_animation_list.append(animation_list)
 
 
+
+
 def draw_game_info(player):
     pygame.draw.rect(screen, constants.PANEL, (0, 0, SCREEN_WIDTH, 50))
     pygame.draw.line(screen, constants.WHITE, (0, 50), (SCREEN_WIDTH, 50))
@@ -97,7 +116,7 @@ def draw_game_info(player):
     draw_text(SCREEN_WIDTH - 50, 15, font, f"x{player.score}", constants.WHITE)
 
 # create player
-player = Character(100, 100, 55, all_animation_list, 0)
+player = Character(400, 100, 55, all_animation_list, 0)
 bow = Weapon(bow_image, arrow_image)
 
 # sprite groups
@@ -106,11 +125,28 @@ damage_text_group = pygame.sprite.Group()
 items_group = pygame.sprite.Group()
 items_group.add(Item(400, 600, 0, coins))
 items_group.add(Item(600, 400, 1, [red_potion]))
-score_coin = Item(SCREEN_WIDTH - 60, 20, 0, coins)
+score_coin = Item(SCREEN_WIDTH - 60, 20, 0, coins, True)
 
 #create enemies
 enemies_list = []
-enemies_list.append(Character(300, 300, 100, all_animation_list, 1))
+enemies_list.append(Character(300, 200, 100, all_animation_list, 1))
+
+# create world
+world_data = []
+for i in range(constants.COL_NUMBER):
+    row = [-1] * constants.COL_NUMBER
+    world_data.append(row)
+
+with open(f"assets/levels/level{game_level}_data.csv") as in_file:
+    tile_data = csv.reader(in_file, delimiter=",")
+    for i, row in enumerate(tile_data):
+        for j, tile in enumerate(row):
+            world_data[i][j] = int(tile)
+
+
+map = World()
+map.process_data(world_data, tile_images)
+
 
 # game loop
 run = True
@@ -120,6 +156,9 @@ while run:
 
     # clearing the screen
     screen.fill(BG)
+
+    # draw_grid()
+
 
     # calculate player movements
     dx = 0
@@ -135,30 +174,34 @@ while run:
 
     # update section
     # move player
-    player.move(dx, dy)
+    scroll = player.move(dx, dy)
     player.update()
+
+    map.update(scroll)
 
     arrow = bow.update(player)
 
     if arrow:
         arrow_group.add(arrow)
     for arrow in arrow_group:
-        damage, enemy_pos_rect = arrow.update(enemies_list)
+        damage, enemy_pos_rect = arrow.update(enemies_list, scroll)
         if damage:
             damage_text_group.add(DamageText(enemy_pos_rect.centerx, enemy_pos_rect.y, str(damage), constants.RED))
 
 
     for enemy in enemies_list:
+        enemy.ai(scroll)
         enemy.update()
 
-    damage_text_group.update()
+    damage_text_group.update(scroll)
 
-    items_group.update(player)
+    items_group.update(player, scroll)
 
-    score_coin.update(player)
+    score_coin.update(player, scroll)
 
     # drawing section
-
+    # draw the map
+    map.draw(screen)
     player.draw(screen)
     bow.draw(screen)
     arrow_group.draw(screen)

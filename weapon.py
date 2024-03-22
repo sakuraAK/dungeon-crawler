@@ -56,7 +56,7 @@ class Arrow(pygame.sprite.Sprite):
 
 
 
-    def update(self, enemy_list):
+    def update(self, enemy_list, scroll):
         damage = 0
         enemy_pos_rect = None
         self.rect.x += self.dx
@@ -74,6 +74,11 @@ class Arrow(pygame.sprite.Sprite):
                 enemy.health -= damage
                 self.kill()
                 break
+
+        # update scroll
+        self.rect.centerx += scroll[0]
+        self.rect.centery += scroll[1]
+
         return damage, enemy_pos_rect
 
     def draw(self, surface):

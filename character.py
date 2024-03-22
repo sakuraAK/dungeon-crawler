@@ -41,6 +41,32 @@ class Character:
 
         self.rect.x += dx
         self.rect.y += dy
+
+        # camera scroll logic
+        scroll =[0, 0]
+        # move screen right
+        if self.rect.right >= constants.SCREEN_WIDTH - constants.SCROLL_THRESHOLD:
+            scroll[0] = -(self.rect.right - (constants.SCREEN_WIDTH - constants.SCROLL_THRESHOLD))
+            self.rect.right = constants.SCREEN_WIDTH - constants.SCROLL_THRESHOLD
+        # move screen left
+        if self.rect.left <= constants.SCROLL_THRESHOLD:
+            scroll[0] = constants.SCROLL_THRESHOLD - self.rect.left
+            self.rect.left = constants.SCROLL_THRESHOLD
+
+        # move screen up
+        if self.rect.top <= constants.SCROLL_THRESHOLD:
+                scroll[1] = constants.SCROLL_THRESHOLD - self.rect.top
+                self.rect.top = constants.SCROLL_THRESHOLD
+        # move screen down
+        if self.rect.bottom >= constants.SCREEN_HEIGHT - constants.SCROLL_THRESHOLD:
+                scroll[1] = -(self.rect.bottom - (constants.SCREEN_HEIGHT - constants.SCROLL_THRESHOLD))
+                self.rect.bottom = constants.SCREEN_HEIGHT - constants.SCROLL_THRESHOLD
+        return scroll
+
+    def ai(self, scroll):
+        self.rect.centerx += scroll[0]
+        self.rect.centery += scroll[1]
+
     def update(self):
         animation_cooldown = constants.ANIMATION_COOLDOWN_PERIOD
 

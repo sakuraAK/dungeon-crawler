@@ -4,9 +4,7 @@ from world import World
 
 import constants
 from constants import SCREEN_HEIGHT, SCREEN_WIDTH, BG, FPS, SPEED, SCALE, SCALE_WEAPON
-from character import Character
-from weapon import Weapon, Arrow
-from enemies import  Zombie
+from weapon import Weapon
 from item import Item
 
 pygame.init()
@@ -57,7 +55,7 @@ def scale_image(image, scale):
     h = image.get_height()
     return pygame.transform.scale(image, (w * scale, h * scale))
 
-# work on images
+# images start
 
 # map tiles
 tile_images = []
@@ -73,11 +71,15 @@ full_heart = scale_image(pygame.image.load("assets/images/items/heart_full.png")
 half_heart = scale_image(pygame.image.load("assets/images/items/heart_half.png").convert_alpha(), constants.SCALE_ITEMS)
 empty_heart = scale_image(pygame.image.load("assets/images/items/heart_empty.png").convert_alpha(), constants.SCALE_ITEMS)
 
+# items images
 coins = []
 for i in range(4):
     img = scale_image(pygame.image.load(f"assets/images/items/coin_f{i}.png").convert_alpha(), constants.SCALE_ITEMS)
     coins.append(img)
 red_potion = scale_image(pygame.image.load(f"assets/images/items/potion_red.png").convert_alpha(), constants.SCALE_ITEMS)
+items_image_list = []
+items_image_list.append(coins)
+items_image_list.append([red_potion])
 
 character_list = ["dracula", "zombie"]
 action_types = ["idle", "run"]
@@ -93,7 +95,7 @@ for character in character_list:
         animation_list.append(tmp_list)
     all_animation_list.append(animation_list)
 
-
+# images end
 
 
 def draw_game_info(player):
@@ -115,38 +117,45 @@ def draw_game_info(player):
     # score
     draw_text(SCREEN_WIDTH - 50, 15, font, f"x{player.score}", constants.WHITE)
 
-# create player
-player = Character(400, 100, 55, all_animation_list, 0)
+    # level info
+    draw_text(SCREEN_WIDTH // 2, 15, font, f"LEVEL: {game_level}", constants.WHITE)
+
+
+score_coin = Item(SCREEN_WIDTH - 60, 20, 0, coins, True)
+
+#game map, characters, items, and objects
 bow = Weapon(bow_image, arrow_image)
 
 # sprite groups
 arrow_group = pygame.sprite.Group()
 damage_text_group = pygame.sprite.Group()
 items_group = pygame.sprite.Group()
-items_group.add(Item(400, 600, 0, coins))
-items_group.add(Item(600, 400, 1, [red_potion]))
-score_coin = Item(SCREEN_WIDTH - 60, 20, 0, coins, True)
 
-#create enemies
-enemies_list = []
-enemies_list.append(Character(300, 200, 100, all_animation_list, 1))
 
 # create world
-world_data = []
-for i in range(constants.COL_NUMBER):
-    row = [-1] * constants.COL_NUMBER
-    world_data.append(row)
-
-with open(f"assets/levels/level{game_level}_data.csv") as in_file:
-    tile_data = csv.reader(in_file, delimiter=",")
-    for i, row in enumerate(tile_data):
-        for j, tile in enumerate(row):
-            world_data[i][j] = int(tile)
-
-
 map = World()
-map.process_data(world_data, tile_images)
+def generate_world():
+    world_data = []
+    for i in range(constants.COL_NUMBER):
+        row = [-1] * constants.COL_NUMBER
+        world_data.append(row)
 
+    with open(f"assets/levels/level{game_level}_data.csv") as in_file:
+        tile_data = csv.reader(in_file, delimiter=",")
+        for i, row in enumerate(tile_data):
+            for j, tile in enumerate(row):
+                world_data[i][j] = int(tile)
+    # map = World()
+    map.process_data(world_data, tile_images, all_animation_list, items_image_list)
+
+generate_world()
+
+
+
+player = map.player
+enemies_list = map.enemies
+for item in map.items:
+    items_group.add(item)
 
 # game loop
 run = True
@@ -174,73 +183,87 @@ while run:
 
     # update section
     # move player
-    scroll = player.move(dx, dy)
-    player.update()
+    scroll, next_level = player.move(dx, dy, map.obstacles, map.exit)
+    if next_level:
+        game_level += 1
+        if game_level > constants.MAX_LVL_NUMBER:
+            game_level = 1
+        generate_world()
+        player = map.player
+        enemies_list = map.enemies
+        arrow_group = pygame.sprite.Group()
+        damage_text_group = pygame.sprite.Group()
+        items_group = pygame.sprite.Group()
+        for item in map.items:
+            items_group.add(item)
+    else:
 
-    map.update(scroll)
+        player.update()
 
-    arrow = bow.update(player)
+        map.update(scroll)
 
-    if arrow:
-        arrow_group.add(arrow)
-    for arrow in arrow_group:
-        damage, enemy_pos_rect = arrow.update(enemies_list, scroll)
-        if damage:
-            damage_text_group.add(DamageText(enemy_pos_rect.centerx, enemy_pos_rect.y, str(damage), constants.RED))
+        arrow = bow.update(player)
+
+        if arrow:
+            arrow_group.add(arrow)
+        for arrow in arrow_group:
+            damage, enemy_pos_rect = arrow.update(enemies_list, scroll)
+            if damage:
+                damage_text_group.add(DamageText(enemy_pos_rect.centerx, enemy_pos_rect.y, str(damage), constants.RED))
 
 
-    for enemy in enemies_list:
-        enemy.ai(scroll)
-        enemy.update()
+        for enemy in enemies_list:
+            enemy.ai(scroll, player, map.obstacles)
+            enemy.update()
 
-    damage_text_group.update(scroll)
+        damage_text_group.update(scroll)
 
-    items_group.update(player, scroll)
+        items_group.update(player, scroll)
 
-    score_coin.update(player, scroll)
+        score_coin.update(player, scroll)
 
-    # drawing section
-    # draw the map
-    map.draw(screen)
-    player.draw(screen)
-    bow.draw(screen)
-    arrow_group.draw(screen)
-    for enemy in enemies_list:
-        enemy.draw(screen)
-    damage_text_group.draw(screen)
+        # drawing section
+        # draw the map
+        map.draw(screen)
+        player.draw(screen)
+        bow.draw(screen)
+        arrow_group.draw(screen)
+        for enemy in enemies_list:
+            enemy.draw(screen)
+        damage_text_group.draw(screen)
 
-    draw_game_info(player)
-    score_coin.draw(screen)
+        draw_game_info(player)
+        score_coin.draw(screen)
 
-    items_group.draw(screen)
+        items_group.draw(screen)
 
-    # event handling section
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False
-        # handle keyboard events
-        # handle button pressed event
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_a:
-                move_left = True
-            if event.key == pygame.K_d:
-                move_right = True
-            if event.key == pygame.K_w:
-                move_up = True
-            if event.key == pygame.K_s:
-                move_down = True
-        # handle button release event
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_a:
-                move_left = False
-            if event.key == pygame.K_d:
-                move_right = False
-            if event.key == pygame.K_w:
-                move_up = False
-            if event.key == pygame.K_s:
-                move_down = False
+        # event handling section
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+            # handle keyboard events
+            # handle button pressed event
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_a:
+                    move_left = True
+                if event.key == pygame.K_d:
+                    move_right = True
+                if event.key == pygame.K_w:
+                    move_up = True
+                if event.key == pygame.K_s:
+                    move_down = True
+            # handle button release event
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_a:
+                    move_left = False
+                if event.key == pygame.K_d:
+                    move_right = False
+                if event.key == pygame.K_w:
+                    move_up = False
+                if event.key == pygame.K_s:
+                    move_down = False
 
-    # render the display
-    pygame.display.update()
+        # render the display
+        pygame.display.update()
 
 pygame.quit()

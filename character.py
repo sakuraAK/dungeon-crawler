@@ -22,7 +22,8 @@ class Character:
 
 
 
-    def move(self, dx, dy):
+    def move(self, dx, dy, obstacles, exit_tile):
+        next_level = False
         # determine if moving
         if dx != 0 or dy != 0:
             self.moving = True
@@ -41,6 +42,38 @@ class Character:
 
         self.rect.x += dx
         self.rect.y += dy
+
+        # test for collision with the walls
+        for obstacle in obstacles:
+            if not self.rect.colliderect(obstacle[1]):
+                continue
+            if dx < 0:
+            # moving left
+                if self.rect.left < obstacle[1].right:
+                    self.rect.left = obstacle[1].right
+            if dx > 0:
+            # moving right
+                if self.rect.right > obstacle[1].left:
+                    self.rect.right = obstacle[1].left
+            break
+
+        for obstacle in obstacles:
+            if not self.rect.colliderect(obstacle[1]):
+                continue
+
+            if dy < 0:
+                # moving up
+                if self.rect.top < obstacle[1].bottom:
+                    self.rect.top = obstacle[1].bottom
+            if dy > 0:
+                # moving down
+                if self.rect.bottom > obstacle[1].top:
+                    self.rect.bottom = obstacle[1].top
+            break
+
+        # level exit logic only applies to player
+        if self.character_index == 0 and self.rect.colliderect(exit_tile[1]):
+            next_level = True
 
         # camera scroll logic
         scroll =[0, 0]
@@ -61,11 +94,37 @@ class Character:
         if self.rect.bottom >= constants.SCREEN_HEIGHT - constants.SCROLL_THRESHOLD:
                 scroll[1] = -(self.rect.bottom - (constants.SCREEN_HEIGHT - constants.SCROLL_THRESHOLD))
                 self.rect.bottom = constants.SCREEN_HEIGHT - constants.SCROLL_THRESHOLD
-        return scroll
+        return scroll, next_level
 
-    def ai(self, scroll):
+    def ai(self, scroll, player, obstacles):
+        dx = 0
+        dy = 0
+
+        # ai for movement
+        if player.rect.centery < self.rect.centery:
+            # player above the enemy
+            # go up
+            dy = -constants.ENEMY_SPEED
+        if player.rect.centery > self.rect.centery:
+            # player below the enemy
+            # go down
+            dy = constants.ENEMY_SPEED
+
+        if player.rect.centerx < self.rect.centerx:
+            # player is to the left of the enemy
+            # go left
+            dx = -constants.ENEMY_SPEED
+        if player.rect.centerx > self.rect.centerx:
+            # player is to the right of the enemy
+            # go right
+            dx = constants.ENEMY_SPEED
+
+        self.move(dx, dy, obstacles, None)
+
         self.rect.centerx += scroll[0]
         self.rect.centery += scroll[1]
+
+
 
     def update(self):
         animation_cooldown = constants.ANIMATION_COOLDOWN_PERIOD

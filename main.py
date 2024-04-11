@@ -81,7 +81,7 @@ items_image_list = []
 items_image_list.append(coins)
 items_image_list.append([red_potion])
 
-character_list = ["dracula", "zombie"]
+character_list = ["dracula", "zombie", "big_demon"]
 action_types = ["idle", "run"]
 all_animation_list = []
 for character in character_list:
@@ -183,7 +183,8 @@ while run:
 
     # update section
     # move player
-    scroll, next_level = player.move(dx, dy, map.obstacles, map.exit)
+    scroll = player.move(dx, dy, map.obstacles)
+    next_level = False
     if next_level:
         game_level += 1
         if game_level > constants.MAX_LVL_NUMBER:
@@ -213,7 +214,7 @@ while run:
 
 
         for enemy in enemies_list:
-            enemy.ai(scroll, player, map.obstacles)
+            enemy.ai(player, map.obstacles, scroll)
             enemy.update()
 
         damage_text_group.update(scroll)

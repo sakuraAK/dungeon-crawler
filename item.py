@@ -15,7 +15,7 @@ class Item(pygame.sprite.Sprite):
         self.last_animation_update = pygame.time.get_ticks()
         self.fake = fake_coin
 
-    def update(self, player, scroll):
+    def update(self, player, scroll, sounds):
         self.image = self.animation_list[self.frame_index]
         if pygame.time.get_ticks() - self.last_animation_update > constants.ANIMATION_COOLDOWN_PERIOD:
             self.frame_index += 1
@@ -27,8 +27,10 @@ class Item(pygame.sprite.Sprite):
         if player.rect.colliderect(self.rect):
             if self.type == 0: # coin
                 player.score += 1
+                sounds[self.type].play()
             elif self.type == 1: # red potion
                 player.health += 5
+                sounds[self.type].play()
                 if player.health > constants.PLAYER_INIT_HEALTH:
                     player.health = constants.PLAYER_INIT_HEALTH
 

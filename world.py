@@ -47,7 +47,7 @@ class World:
                     # enemy
                     enemy = Character(image_x, image_y, constants.ENEMY_INIT_HEALTH, all_animation_list, 1)
                     self.enemies.append(enemy)
-                elif tile >= 15 and tile <= 17:
+                elif tile >= 15 and tile < 17:
                     # item
                     # 15: coin
                     # 16: red potion
@@ -57,7 +57,9 @@ class World:
                     elif tile == 16:
                         item = Item(image_x, image_y, 1, items_image_list[1])
                         self.items.append(item)
-
+                elif tile == 17:
+                    enemy = Character(image_x, image_y, constants.ENEMY_INIT_HEALTH, all_animation_list, 2)
+                    self.enemies.append(enemy)
 
 
                 self.map_tiles.append(tile_data)

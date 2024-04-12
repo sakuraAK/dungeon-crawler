@@ -2,6 +2,7 @@ import math
 
 import pygame
 import constants
+from weapon import Fireball
 
 
 class Character:
@@ -10,8 +11,17 @@ class Character:
         self.animation_list = animation_list
         self.frame_index = 0
         self.last_animation_update_time = pygame.time.get_ticks()
-        self.rect = pygame.Rect(0, 0, 40, 40)
-        self.rect.center = (x, y)
+        self.boss = False
+
+        size_x = 40
+        size_y = 40
+        if character_index == 2:
+            self.boss = True
+            size_x = 60
+            size_y = 70
+
+        self.rect = pygame.Rect(0, 0, size_x, size_y)
+        self.rect.center = (x, y + 15)
         self.moving = False
         self.image = self.animation_list[character_index][1 if self.moving else 0][self.frame_index]
         self.flip = False
@@ -21,10 +31,12 @@ class Character:
         self.alive = True
         self.hit = False
         self.last_hit = pygame.time.get_ticks()
+        self.last_shot = pygame.time.get_ticks()
         self.stunned = False
 
-    def move(self, dx, dy, obstacle_tiles):
+    def move(self, dx, dy, obstacle_tiles, exit_tile):
         screen_scroll = [0, 0]
+        exit_reached = False
         self.running = False
 
         if dx != 0 or dy != 0:
@@ -79,13 +91,18 @@ class Character:
                 screen_scroll[1] = constants.SCROLL_THRESH - self.rect.top
                 self.rect.top = constants.SCROLL_THRESH
 
-        return screen_scroll
+            # if exit_reached
+            if self.rect.colliderect(exit_tile[1]):
+                exit_reached = True
 
-    def ai(self, player, obstacle_tiles, screen_scroll):
+        return screen_scroll, exit_reached
+
+    def ai(self, player, obstacle_tiles, screen_scroll, fireball_image):
         clipped_line = ()
-        stun_cooldown = 100
+        stun_cooldown = 200
         ai_dx = 0
         ai_dy = 0
+        fireball = None
 
         # reposition the mobs based on screen scroll
         self.rect.x += screen_scroll[0]
@@ -114,12 +131,23 @@ class Character:
         if self.alive:
             if not self.stunned:
                 # move towards player
-                self.move(ai_dx, ai_dy, obstacle_tiles)
+                self.move(ai_dx, ai_dy, obstacle_tiles, None)
                 # attack player
-                if dist < constants.ATTACK_RANGE and player.hit == False:
+                if dist < constants.ATTACK_RANGE and player.hit is False:
                     player.health -= 10
                     player.hit = True
                     player.last_hit = pygame.time.get_ticks()
+
+                # boss attacks with fireball
+                fireball_cooldown = 800
+                if self.boss and dist < constants.FIREBALL_RANGE \
+                        and pygame.time.get_ticks() - self.last_shot >= fireball_cooldown:
+                    self.last_shot = pygame.time.get_ticks()
+                    fireball = Fireball(fireball_image, self.rect.centerx, self.rect.centery, \
+                                        player.rect.centerx, player.rect.centery)
+
+
+
 
             # check if hit
             if self.hit == True:
@@ -127,23 +155,26 @@ class Character:
                 self.last_hit = pygame.time.get_ticks()
                 self.stunned = True
                 self.running = False
-                self.update_action(0)
+
 
             if (pygame.time.get_ticks() - self.last_hit > stun_cooldown):
                 self.stunned = False
+
+            return fireball
 
     def update(self):
         animation_cooldown = constants.ANIMATION_COOLDOWN_PERIOD
 
         # handle animation
         # update image
-        self.image = self.animation_list[self.character_index][1 if self.moving else 0][self.frame_index]
-        if pygame.time.get_ticks() - self.last_animation_update_time > animation_cooldown:
-            self.frame_index += 1
-            self.last_animation_update_time = pygame.time.get_ticks()
-            # self.frame_index  = self.frame_index % len(self.animation_list)
-            if self.frame_index >= len(self.animation_list):
-                self.frame_index = 0
+        if self.alive:
+            self.image = self.animation_list[self.character_index][1 if self.moving else 0][self.frame_index]
+            if pygame.time.get_ticks() - self.last_animation_update_time > animation_cooldown:
+                self.frame_index += 1
+                self.last_animation_update_time = pygame.time.get_ticks()
+                # self.frame_index  = self.frame_index % len(self.animation_list)
+                if self.frame_index >= len(self.animation_list):
+                    self.frame_index = 0
         if self.health <= 0:
             self.health = 0
             self.alive = False
@@ -151,4 +182,4 @@ class Character:
     def draw(self, surface):
         flipped_image = pygame.transform.flip(self.image, self.flip, False)
         surface.blit(flipped_image, self.rect)
-        pygame.draw.rect(surface, constants.RED, self.rect, 1)
+        # pygame.draw.rect(surface, constants.RED, self.rect, 1)
